@@ -69,12 +69,12 @@ if df.empty:
 
 st.info(f"分析標的：2330 台積電；期間：{df['time'].min()} 至 {df['time'].max()}；K 棒數：{len(df):,}")
 
-with st.expander("作業要求對應與策略說明", expanded=True):
+with st.expander("策略說明與績效評估方式", expanded=True):
     st.markdown(
         """
-        - 已補上 **MACD 策略** 與 **KDJ 策略** 的程式交易。
-        - 已製作 Streamlit APP，並提供策略績效比較、參數最佳化、風險調整指標與生成式 AI 評估。
-        - 綜合分數同時考慮總損益、勝率、最大回撤與報酬回撤比，避免只看報酬。
+        本系統以技術指標產生買賣訊號，並將不同策略放在相同資料區間與交易條件下比較。
+        績效評估除了觀察總損益，也納入勝率、最大回撤、報酬回撤比、類 Sharpe 與每筆交易期望值，
+        讓策略比較同時兼顧報酬與風險。
         """
     )
     st.table(pd.DataFrame({"策略": list(STRATEGY_DESCRIPTIONS.keys()), "交易邏輯": list(STRATEGY_DESCRIPTIONS.values())}))
