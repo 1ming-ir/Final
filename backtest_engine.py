@@ -132,40 +132,60 @@ def _trade(side: str, entry_time, entry_price: float, exit_time, exit_price: flo
 
 
 def calculate_metrics(trades: pd.DataFrame, equity: pd.DataFrame) -> dict:
+    base = {
+        "total_profit": 0.0,
+        "trade_count": 0,
+        "win_rate": 0.0,
+        "avg_profit": 0.0,
+        "max_drawdown": 0.0,
+        "profit_factor": 0.0,
+        "return_drawdown_ratio": 0.0,
+        "sharpe_like": 0.0,
+        "expectancy": 0.0,
+        "score": 0.0,
+    }
     if trades.empty:
-        return {
-            "total_profit": 0.0,
-            "trade_count": 0,
-            "win_rate": 0.0,
-            "avg_profit": 0.0,
-            "max_drawdown": 0.0,
-            "profit_factor": 0.0,
-            "score": 0.0,
-        }
+        return base
 
     profits = trades["profit"].astype(float)
+    returns = trades["return_pct"].astype(float)
     wins = profits[profits > 0]
     losses = profits[profits < 0]
     total_profit = float(profits.sum())
     win_rate = float((profits > 0).mean())
+    avg_profit = float(profits.mean())
+
     if equity.empty:
         max_drawdown = 0.0
     else:
         peak = equity["equity"].cummax()
         max_drawdown = float((peak - equity["equity"]).max())
+
     gross_profit = float(wins.sum())
     gross_loss = abs(float(losses.sum()))
     profit_factor = gross_profit / gross_loss if gross_loss else (gross_profit if gross_profit else 0.0)
-    score = total_profit - 0.5 * max_drawdown + 100 * (win_rate - 0.5)
-    return {
-        "total_profit": total_profit,
-        "trade_count": int(len(trades)),
-        "win_rate": win_rate,
-        "avg_profit": float(profits.mean()),
-        "max_drawdown": max_drawdown,
-        "profit_factor": profit_factor,
-        "score": float(score),
-    }
+    return_drawdown_ratio = total_profit / max_drawdown if max_drawdown else (total_profit if total_profit > 0 else 0.0)
+    sharpe_like = float(returns.mean() / returns.std(ddof=0)) if len(returns) > 1 and returns.std(ddof=0) else 0.0
+    avg_win = float(wins.mean()) if len(wins) else 0.0
+    avg_loss = abs(float(losses.mean())) if len(losses) else 0.0
+    expectancy = win_rate * avg_win - (1 - win_rate) * avg_loss
+    score = total_profit - 0.5 * max_drawdown + 100 * (win_rate - 0.5) + 10 * return_drawdown_ratio
+
+    base.update(
+        {
+            "total_profit": total_profit,
+            "trade_count": int(len(trades)),
+            "win_rate": win_rate,
+            "avg_profit": avg_profit,
+            "max_drawdown": max_drawdown,
+            "profit_factor": profit_factor,
+            "return_drawdown_ratio": float(return_drawdown_ratio),
+            "sharpe_like": float(sharpe_like),
+            "expectancy": float(expectancy),
+            "score": float(score),
+        }
+    )
+    return base
 
 
 def metrics_frame(results: dict[str, BacktestResult]) -> pd.DataFrame:
